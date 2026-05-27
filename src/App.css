@@ -4,11 +4,7 @@
   --navy: #1c212d;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'IBM Plex Sans', sans-serif;
@@ -16,6 +12,7 @@ body {
   overflow: hidden;
 }
 
+/* ─── Layout ─────────────────────────────────── */
 .root {
   position: relative;
   width: 100vw;
@@ -32,23 +29,38 @@ body {
   height: 100%;
   object-fit: cover;
   z-index: 0;
+  mix-blend-mode: luminosity;
 }
 
-.overlay {
+/* ─── Film grain ─────────────────────────────── */
+.grain {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(28, 33, 45, 0.55) 0%,
-    rgba(28, 33, 45, 0.72) 50%,
-    rgba(28, 33, 45, 0.85) 100%
-  );
-  z-index: 1;
+  inset: -20%;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.038;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  animation: grainShift 0.35s steps(1) infinite;
 }
 
+@keyframes grainShift {
+  0%   { transform: translate(0,    0);     }
+  11%  { transform: translate(-4%,  -6%);   }
+  22%  { transform: translate(6%,   3%);    }
+  33%  { transform: translate(-3%,  8%);    }
+  44%  { transform: translate(8%,   -4%);   }
+  55%  { transform: translate(-6%,  2%);    }
+  66%  { transform: translate(4%,   -8%);   }
+  77%  { transform: translate(-8%,  5%);    }
+  88%  { transform: translate(3%,   -3%);   }
+  100% { transform: translate(0,    0);     }
+}
+
+/* ─── Content ────────────────────────────────── */
 .content {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -56,26 +68,28 @@ body {
 }
 
 .eyebrow {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.3em;
   color: var(--orange);
+  opacity: 0.85;
   text-transform: uppercase;
 }
 
+/* ─── Countdown ──────────────────────────────── */
 .countdown {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .separator {
-  font-size: 64px;
-  font-weight: 300;
-  color: var(--orange);
+  font-size: 108px;
+  font-weight: 100;
+  color: var(--cream);
   line-height: 1;
-  margin-top: 6px;
-  opacity: 0.7;
+  margin-top: 0;
+  opacity: 0.15;
   user-select: none;
 }
 
@@ -83,48 +97,64 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
-.card {
-  background: rgba(28, 33, 45, 0.6);
-  border: 1px solid rgba(255, 253, 241, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 8px;
-  padding: 24px 32px;
-  min-width: 120px;
-  text-align: center;
-}
-
-.unit.flip .card {
-  animation: flipCard 0.6s ease;
-}
-
-@keyframes flipCard {
-  0%   { transform: rotateX(0deg); opacity: 1; }
-  30%  { transform: rotateX(-90deg); opacity: 0.3; }
-  60%  { transform: rotateX(-90deg); opacity: 0.3; }
-  100% { transform: rotateX(0deg); opacity: 1; }
-}
-
+/* Clips digit during slide-in */
 .number {
-  font-size: 72px;
-  font-weight: 700;
-  color: var(--cream);
-  letter-spacing: -0.02em;
+  display: flex;
+  overflow: hidden;
   line-height: 1;
+}
+
+@keyframes digitSlideIn {
+  from { transform: translateY(55%); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+.digit {
+  display: inline-block;
+  font-size: 108px;
+  font-weight: 200;
+  color: var(--cream);
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
+  width: 0.65em;
+  text-align: center;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.4);
+  animation: digitSlideIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  color: rgba(255, 253, 241, 0.45);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  color: var(--orange);
+  opacity: 0.8;
   text-transform: uppercase;
 }
 
+/* ─── Glitch ─────────────────────────────────── */
+@keyframes glitchSlip {
+  0%   { transform: none;                      clip-path: none; }
+  10%  { transform: translate(-2px, 0) skewX( 0.4deg);
+         text-shadow: -2px 0 rgba(242,94,19,.6), 2px 0 rgba(80,160,255,.5), 0 4px 40px rgba(0,0,0,.55); }
+  20%  { transform: translate( 2px, 0) skewX(-0.3deg);
+         text-shadow:  2px 0 rgba(242,94,19,.6),-2px 0 rgba(80,160,255,.5), 0 4px 40px rgba(0,0,0,.55); }
+  30%  { transform: translate(-1px, 0); text-shadow: 0 4px 40px rgba(0,0,0,.55); }
+  42%  { transform: none; opacity: 0.85; }
+  45%  { transform: translate(1px, -1px) scaleY(0.995); opacity: 1; }
+  60%  { transform: none; }
+  72%  { transform: translate(-1px, 0) skewX(0.2deg); opacity: 0.9; }
+  80%  { transform: none; opacity: 1; }
+  100% { transform: none; }
+}
+
+.countdown.glitch .digit {
+  animation: glitchSlip 0.42s ease both;
+}
+
+/* ─── Date line ──────────────────────────────── */
 .date-line {
   display: flex;
   align-items: center;
@@ -135,46 +165,89 @@ body {
 .date-line::after {
   content: '';
   display: block;
-  width: 60px;
+  width: 48px;
   height: 1px;
-  background: var(--orange);
-  opacity: 0.5;
+  background: var(--cream);
+  opacity: 0.15;
 }
 
 .date-text {
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  color: var(--cream);
+  opacity: 0.35;
+}
+
+/* ─── Progress bar ───────────────────────────── */
+.progress-wrap {
+  position: fixed;
+  bottom: 28px;
+  left: 40px;
+  right: 40px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
   font-weight: 500;
   letter-spacing: 0.2em;
   color: var(--cream);
-  opacity: 0.7;
+  opacity: 0.25;
+  text-transform: uppercase;
 }
 
+.progress-track {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 253, 241, 0.1);
+  border-radius: 1px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--orange);
+  border-radius: 1px;
+  opacity: 0.6;
+  transition: width 1s linear;
+}
+
+/* ─── Audio button ───────────────────────────── */
+.audio-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 40px;
+  z-index: 5;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 253, 241, 0.12);
+  background: rgba(8, 10, 15, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: rgba(255, 253, 241, 0.45);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.audio-btn:hover {
+  color: var(--cream);
+  border-color: rgba(255, 253, 241, 0.25);
+}
+
+/* ─── Responsive ─────────────────────────────── */
 @media (max-width: 640px) {
-  .countdown {
-    gap: 6px;
-  }
-
-  .card {
-    padding: 16px 18px;
-    min-width: 74px;
-    border-radius: 6px;
-  }
-
-  .number {
-    font-size: 44px;
-  }
-
-  .separator {
-    font-size: 40px;
-    margin-top: 4px;
-  }
-
-  .label {
-    font-size: 9px;
-  }
-
-  .date-line::before,
-  .date-line::after {
-    width: 32px;
-  }
+  .countdown { gap: 4px; }
+  .digit { font-size: 56px; }
+  .separator { font-size: 56px; }
+  .progress-wrap { left: 20px; right: 20px; bottom: 20px; }
+  .audio-btn { right: 20px; bottom: 16px; }
 }

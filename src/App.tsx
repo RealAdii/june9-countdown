@@ -1,57 +1,111 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
+const START  = new Date('2026-05-27T00:00:00')
 const TARGET = new Date('2026-06-09T00:00:00')
 
 function getTimeLeft() {
   const diff = TARGET.getTime() - Date.now()
   if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0 }
   return {
-    days: Math.floor(diff / 86400000),
-    hours: Math.floor((diff % 86400000) / 3600000),
-    minutes: Math.floor((diff % 3600000) / 60000),
-    seconds: Math.floor((diff % 60000) / 1000),
+    days:    Math.floor(diff / 86400000),
+    hours:   Math.floor((diff % 86400000) / 3600000),
+    minutes: Math.floor((diff % 3600000)  / 60000),
+    seconds: Math.floor((diff % 60000)    / 1000),
   }
+}
+
+function getProgress() {
+  const total   = TARGET.getTime() - START.getTime()
+  const elapsed = Date.now() - START.getTime()
+  return Math.min(Math.max((elapsed / total) * 100, 0), 100)
 }
 
 function pad(n: number) {
   return String(n).padStart(2, '0')
 }
 
+// Keyed by position+digit — only changed digits remount and animate
+function AnimatedNumber({ value }: { value: number }) {
+  return (
+    <div className="number">
+      {pad(value).split('').map((char, i) => (
+        <span key={`${i}-${char}`} className="digit">{char}</span>
+      ))}
+    </div>
+  )
+}
+
 type TimeLeft = ReturnType<typeof getTimeLeft>
 
 export default function App() {
-  const [time, setTime] = useState<TimeLeft>(getTimeLeft)
-  const [flipping, setFlipping] = useState<Record<string, boolean>>({})
-  const prevRef = useRef<TimeLeft>(getTimeLeft())
+  const [time, setTime]         = useState<TimeLeft>(getTimeLeft)
+  const [progress, setProgress] = useState(getProgress)
+  const [muted, setMuted]       = useState(true)
+  const [glitching, setGlitching] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
+  // Clock
   useEffect(() => {
     const timer = setInterval(() => {
-      const next = getTimeLeft()
-      const prev = prevRef.current
-      const newFlipping: Record<string, boolean> = {}
-      const keys = ['days', 'hours', 'minutes', 'seconds'] as const
-      keys.forEach(k => {
-        if (prev[k] !== next[k]) newFlipping[k] = true
-      })
-      prevRef.current = next
-      setFlipping(newFlipping)
-      setTime(next)
-      setTimeout(() => setFlipping({}), 600)
+      setTime(getTimeLeft())
+      setProgress(getProgress())
     }, 1000)
     return () => clearInterval(timer)
   }, [])
 
+  // Unmute on first interaction
+  useEffect(() => {
+    const unmute = () => {
+      const vid = videoRef.current
+      if (!vid) return
+      vid.muted = false
+      setMuted(false)
+    }
+    document.addEventListener('click',      unmute, { once: true })
+    document.addEventListener('touchstart', unmute, { once: true })
+    document.addEventListener('keydown',    unmute, { once: true })
+    return () => {
+      document.removeEventListener('click',      unmute)
+      document.removeEventListener('touchstart', unmute)
+      document.removeEventListener('keydown',    unmute)
+    }
+  }, [])
+
+  // Occasional glitch — random interval between 8–18s
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>
+    const schedule = () => {
+      timeout = setTimeout(() => {
+        setGlitching(true)
+        setTimeout(() => {
+          setGlitching(false)
+          schedule()
+        }, 420)
+      }, 8000 + Math.random() * 10000)
+    }
+    schedule()
+    return () => clearTimeout(timeout)
+  }, [])
+
+  function toggleAudio() {
+    const vid = videoRef.current
+    if (!vid) return
+    vid.muted = !vid.muted
+    setMuted(vid.muted)
+  }
+
   const units = [
-    { key: 'days', label: 'DAYS', value: time.days },
-    { key: 'hours', label: 'HRS', value: time.hours },
-    { key: 'minutes', label: 'MIN', value: time.minutes },
-    { key: 'seconds', label: 'SEC', value: time.seconds },
+    { key: 'days',    label: 'DAYS', value: time.days },
+    { key: 'hours',   label: 'HRS',  value: time.hours },
+    { key: 'minutes', label: 'MIN',  value: time.minutes },
+    { key: 'seconds', label: 'SEC',  value: time.seconds },
   ]
 
   return (
     <div className="root">
       <video
+        ref={videoRef}
         className="bg-video"
         src="/bg.mp4"
         autoPlay
@@ -59,19 +113,19 @@ export default function App() {
         loop
         playsInline
       />
-      <div className="overlay" />
+
+      {/* Film grain */}
+      <div className="grain" />
 
       <div className="content">
         <div className="eyebrow">COUNTING DOWN TO</div>
 
-        <div className="countdown">
+        <div className={`countdown ${glitching ? 'glitch' : ''}`}>
           {units.map(({ key, label, value }, i) => (
             <div key={key} style={{ display: 'contents' }}>
-              <div className={`unit ${flipping[key] ? 'flip' : ''}`}>
-                <div className="card">
-                  <div className="number">{pad(value)}</div>
-                </div>
+              <div className="unit">
                 <div className="label">{label}</div>
+                <AnimatedNumber value={value} />
               </div>
               {i < units.length - 1 && (
                 <div className="separator">:</div>
@@ -84,6 +138,38 @@ export default function App() {
           <span className="date-text">JUNE 9, 2026</span>
         </div>
       </div>
+
+      {/* Progress bar */}
+      <div className="progress-wrap">
+        <div className="progress-labels">
+          <span>MAY 27</span>
+          <span>JUN 9</span>
+        </div>
+        <div className="progress-track">
+          <div className="progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+
+      {/* Audio toggle */}
+      <button
+        className="audio-btn"
+        onClick={toggleAudio}
+        aria-label={muted ? 'Unmute' : 'Mute'}
+      >
+        {muted ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/>
+            <line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+        )}
+      </button>
     </div>
   )
 }
