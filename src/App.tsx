@@ -66,17 +66,17 @@ export default function App() {
 
         <div className="countdown">
           {units.map(({ key, label, value }, i) => (
-            <>
-              <div key={key} className={`unit ${flipping[key] ? 'flip' : ''}`}>
+            <div key={key} style={{ display: 'contents' }}>
+              <div className={`unit ${flipping[key] ? 'flip' : ''}`}>
                 <div className="card">
                   <div className="number">{pad(value)}</div>
                 </div>
                 <div className="label">{label}</div>
               </div>
               {i < units.length - 1 && (
-                <div key={`sep-${i}`} className="separator">:</div>
+                <div className="separator">:</div>
               )}
-            </>
+            </div>
           ))}
         </div>
 
