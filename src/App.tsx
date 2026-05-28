@@ -50,47 +50,65 @@ export default function App() {
   // Keep mutedRef in sync so the interval closure always has the current value
   useEffect(() => { mutedRef.current = muted }, [muted])
 
-  // Sharp clock tick: two-layer synthesis
+  // Loud dramatic tick — high click + low thump for physical impact
   function playTick() {
     if (mutedRef.current) return
     const ctx = audioCtx.current
     if (!ctx) return
 
-    const t = ctx.currentTime
+    const t  = ctx.currentTime
+    const sr = ctx.sampleRate
 
-    // Layer 1: high-freq oscillator burst — the sharp "click" transient
-    const osc     = ctx.createOscillator()
-    const oscGain = ctx.createGain()
-    osc.frequency.value = 3200
-    oscGain.gain.setValueAtTime(0.45, t)
-    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.01)
-    osc.connect(oscGain)
-    oscGain.connect(ctx.destination)
-    osc.start(t)
-    osc.stop(t + 0.01)
+    // Master compressor so it hits hard without clipping
+    const compressor = ctx.createDynamicsCompressor()
+    compressor.threshold.value = -6
+    compressor.knee.value      = 0
+    compressor.ratio.value     = 20
+    compressor.attack.value    = 0.001
+    compressor.release.value   = 0.05
+    compressor.connect(ctx.destination)
 
-    // Layer 2: bandpass-filtered noise — the mechanical "body"
-    const sr     = ctx.sampleRate
-    const buffer = ctx.createBuffer(1, Math.floor(sr * 0.02), sr)
+    // Layer 1: piercing high click — "TIK"
+    const click     = ctx.createOscillator()
+    const clickGain = ctx.createGain()
+    click.frequency.value = 4800
+    clickGain.gain.setValueAtTime(1.2, t)
+    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.008)
+    click.connect(clickGain)
+    clickGain.connect(compressor)
+    click.start(t)
+    click.stop(t + 0.008)
+
+    // Layer 2: low thump — physical weight, makes the chest feel it
+    const thump     = ctx.createOscillator()
+    const thumpGain = ctx.createGain()
+    thump.type = 'sine'
+    thump.frequency.value = 90
+    thumpGain.gain.setValueAtTime(1.0, t)
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.06)
+    thump.connect(thumpGain)
+    thumpGain.connect(compressor)
+    thump.start(t)
+    thump.stop(t + 0.06)
+
+    // Layer 3: noise snap — the mechanical crack between the two
+    const buffer = ctx.createBuffer(1, Math.floor(sr * 0.018), sr)
     const data   = buffer.getChannelData(0)
     for (let i = 0; i < data.length; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.0025))
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.002))
     }
-    const source = ctx.createBufferSource()
-    source.buffer = buffer
-
-    const filter = ctx.createBiquadFilter()
-    filter.type = 'bandpass'
-    filter.frequency.value = 2800
-    filter.Q.value = 3.5
-
-    const noiseGain = ctx.createGain()
-    noiseGain.gain.value = 0.35
-
-    source.connect(filter)
-    filter.connect(noiseGain)
-    noiseGain.connect(ctx.destination)
-    source.start(t)
+    const snap     = ctx.createBufferSource()
+    snap.buffer    = buffer
+    const snapFilter = ctx.createBiquadFilter()
+    snapFilter.type = 'bandpass'
+    snapFilter.frequency.value = 3500
+    snapFilter.Q.value = 4
+    const snapGain = ctx.createGain()
+    snapGain.gain.value = 1.0
+    snap.connect(snapFilter)
+    snapFilter.connect(snapGain)
+    snapGain.connect(compressor)
+    snap.start(t)
   }
 
   // Clock + tick
@@ -192,7 +210,7 @@ export default function App() {
 
       <div className="progress-wrap">
         <div className="progress-labels">
-          <span>MAY 27</span>
+          <span />
           <span>JUN 9</span>
         </div>
         <div className="progress-track">
