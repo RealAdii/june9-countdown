@@ -50,88 +50,67 @@ export default function App() {
   // Keep mutedRef in sync so the interval closure always has the current value
   useEffect(() => { mutedRef.current = muted }, [muted])
 
-  // Grandfather clock tick — escapement click + deep case resonance
-  function playTick() {
+  // Deep heartbeat — single thump (lub) + softer echo (dub), 150ms apart
+  function playHeartbeat() {
     if (mutedRef.current) return
     const ctx = audioCtx.current
     if (!ctx) return
 
-    const t  = ctx.currentTime
-    const sr = ctx.sampleRate
-
     const comp = ctx.createDynamicsCompressor()
-    comp.threshold.value = -3
-    comp.ratio.value     = 8
+    comp.threshold.value = -2
+    comp.ratio.value     = 10
     comp.attack.value    = 0.001
-    comp.release.value   = 0.1
+    comp.release.value   = 0.15
     comp.connect(ctx.destination)
 
-    // Escapement click — square wave with pitch drop (gear tooth catching)
-    const click     = ctx.createOscillator()
-    const clickGain = ctx.createGain()
-    click.type = 'square'
-    click.frequency.setValueAtTime(580, t)
-    click.frequency.exponentialRampToValueAtTime(180, t + 0.022)
-    clickGain.gain.setValueAtTime(0.75, t)
-    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.025)
-    click.connect(clickGain)
-    clickGain.connect(comp)
-    click.start(t)
-    click.stop(t + 0.025)
+    function thump(when: number, freq: number, gain: number, decay: number) {
+      const osc = ctx.createOscillator()
+      const env = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, when)
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.5, when + decay)
+      env.gain.setValueAtTime(gain, when)
+      env.gain.exponentialRampToValueAtTime(0.001, when + decay)
+      osc.connect(env)
+      env.connect(comp)
+      osc.start(when)
+      osc.stop(when + decay)
 
-    // Deep body — wooden case resonance, long decay
-    const body     = ctx.createOscillator()
-    const bodyGain = ctx.createGain()
-    body.type = 'sine'
-    body.frequency.setValueAtTime(160, t)
-    body.frequency.exponentialRampToValueAtTime(110, t + 0.15)
-    bodyGain.gain.setValueAtTime(1.0, t)
-    bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22)
-    body.connect(bodyGain)
-    bodyGain.connect(comp)
-    body.start(t)
-    body.stop(t + 0.22)
-
-    // Mid warmth — harmonic body at 2× fundamental
-    const mid     = ctx.createOscillator()
-    const midGain = ctx.createGain()
-    mid.type = 'sine'
-    mid.frequency.value = 320
-    midGain.gain.setValueAtTime(0.35, t)
-    midGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
-    mid.connect(midGain)
-    midGain.connect(comp)
-    mid.start(t)
-    mid.stop(t + 0.08)
-
-    // Mechanical clunk — noise snap at the transient
-    const nBuf  = ctx.createBuffer(1, Math.floor(sr * 0.025), sr)
-    const nData = nBuf.getChannelData(0)
-    for (let i = 0; i < nData.length; i++) {
-      nData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.004))
+      // Sub layer for physical weight
+      const sub = ctx.createOscillator()
+      const subEnv = ctx.createGain()
+      sub.type = 'sine'
+      sub.frequency.value = freq * 0.5
+      subEnv.gain.setValueAtTime(gain * 0.7, when)
+      subEnv.gain.exponentialRampToValueAtTime(0.001, when + decay * 0.7)
+      sub.connect(subEnv)
+      subEnv.connect(comp)
+      sub.start(when)
+      sub.stop(when + decay * 0.7)
     }
-    const noise     = ctx.createBufferSource()
-    noise.buffer    = nBuf
-    const nFilter   = ctx.createBiquadFilter()
-    nFilter.type    = 'bandpass'
-    nFilter.frequency.value = 1000
-    nFilter.Q.value = 1.5
-    const nGain     = ctx.createGain()
-    nGain.gain.value = 0.55
-    noise.connect(nFilter)
-    nFilter.connect(nGain)
-    nGain.connect(comp)
-    noise.start(t)
+
+    const t = ctx.currentTime
+    thump(t,        55, 1.0, 0.35)  // LUB — deep, heavy
+    thump(t + 0.18, 70, 0.6, 0.25)  // dub — softer echo
   }
 
-  // Clock + tick
+  // Countdown clock — synced to actual second boundary, not drifting interval
   useEffect(() => {
-    const timer = setInterval(() => {
+    let rafId: ReturnType<typeof setTimeout>
+
+    const tick = () => {
       setTime(getTimeLeft())
       setProgress(getProgress())
-      playTick()
-    }, 1000)
-    return () => clearInterval(timer)
+      playHeartbeat()
+      // Schedule next tick at the exact next second boundary
+      const msUntilNext = 1000 - (Date.now() % 1000)
+      rafId = setTimeout(tick, msUntilNext)
+    }
+
+    // Fire immediately at next second boundary
+    const msUntilFirst = 1000 - (Date.now() % 1000)
+    rafId = setTimeout(tick, msUntilFirst)
+    return () => clearTimeout(rafId)
   }, [])
 
   // Unmute video + init AudioContext on first interaction
