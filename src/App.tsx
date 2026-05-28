@@ -50,27 +50,78 @@ export default function App() {
   // Keep mutedRef in sync so the interval closure always has the current value
   useEffect(() => { mutedRef.current = muted }, [muted])
 
-  // Clean metronome click
+  // Grandfather clock tick — escapement click + deep case resonance
   function playTick() {
     if (mutedRef.current) return
     const ctx = audioCtx.current
     if (!ctx) return
 
-    const t   = ctx.currentTime
-    const osc = ctx.createOscillator()
-    const env = ctx.createGain()
+    const t  = ctx.currentTime
+    const sr = ctx.sampleRate
 
-    osc.type = 'sine'
-    osc.frequency.value = 1100
+    const comp = ctx.createDynamicsCompressor()
+    comp.threshold.value = -3
+    comp.ratio.value     = 8
+    comp.attack.value    = 0.001
+    comp.release.value   = 0.1
+    comp.connect(ctx.destination)
 
-    env.gain.setValueAtTime(0, t)
-    env.gain.linearRampToValueAtTime(0.9, t + 0.001)
-    env.gain.exponentialRampToValueAtTime(0.001, t + 0.05)
+    // Escapement click — square wave with pitch drop (gear tooth catching)
+    const click     = ctx.createOscillator()
+    const clickGain = ctx.createGain()
+    click.type = 'square'
+    click.frequency.setValueAtTime(580, t)
+    click.frequency.exponentialRampToValueAtTime(180, t + 0.022)
+    clickGain.gain.setValueAtTime(0.75, t)
+    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.025)
+    click.connect(clickGain)
+    clickGain.connect(comp)
+    click.start(t)
+    click.stop(t + 0.025)
 
-    osc.connect(env)
-    env.connect(ctx.destination)
-    osc.start(t)
-    osc.stop(t + 0.05)
+    // Deep body — wooden case resonance, long decay
+    const body     = ctx.createOscillator()
+    const bodyGain = ctx.createGain()
+    body.type = 'sine'
+    body.frequency.setValueAtTime(160, t)
+    body.frequency.exponentialRampToValueAtTime(110, t + 0.15)
+    bodyGain.gain.setValueAtTime(1.0, t)
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22)
+    body.connect(bodyGain)
+    bodyGain.connect(comp)
+    body.start(t)
+    body.stop(t + 0.22)
+
+    // Mid warmth — harmonic body at 2× fundamental
+    const mid     = ctx.createOscillator()
+    const midGain = ctx.createGain()
+    mid.type = 'sine'
+    mid.frequency.value = 320
+    midGain.gain.setValueAtTime(0.35, t)
+    midGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
+    mid.connect(midGain)
+    midGain.connect(comp)
+    mid.start(t)
+    mid.stop(t + 0.08)
+
+    // Mechanical clunk — noise snap at the transient
+    const nBuf  = ctx.createBuffer(1, Math.floor(sr * 0.025), sr)
+    const nData = nBuf.getChannelData(0)
+    for (let i = 0; i < nData.length; i++) {
+      nData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.004))
+    }
+    const noise     = ctx.createBufferSource()
+    noise.buffer    = nBuf
+    const nFilter   = ctx.createBiquadFilter()
+    nFilter.type    = 'bandpass'
+    nFilter.frequency.value = 1000
+    nFilter.Q.value = 1.5
+    const nGain     = ctx.createGain()
+    nGain.gain.value = 0.55
+    noise.connect(nFilter)
+    nFilter.connect(nGain)
+    nGain.connect(comp)
+    noise.start(t)
   }
 
   // Clock + tick
