@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 
-const START  = new Date('2026-05-27T00:00:00')
 const TARGET = new Date('2026-06-09T00:00:00')
 
 function getTimeLeft() {
