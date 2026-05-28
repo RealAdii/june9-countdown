@@ -63,7 +63,7 @@ export default function App() {
     const activate = () => {
       const vid  = videoRef.current
       const tick = tickRef.current
-      if (vid)  { vid.currentTime = 0; vid.muted = false }
+      if (vid)  vid.muted = false
       if (tick) { tick.currentTime = 0; tick.play() }
       setMuted(false)
     }
@@ -118,6 +118,7 @@ export default function App() {
         playsInline
         preload="auto"
         onCanPlayThrough={() => setVideoReady(true)}
+        onEnded={e => { (e.target as HTMLVideoElement).play() }}
       />
 
       {/* Tick audio — looping MP3, muted until user interaction */}
