@@ -29,6 +29,41 @@ function AnimatedNumber({ value }: { value: number }) {
   )
 }
 
+const SCRAMBLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#%&█▓▒░'
+
+function ScrambleText({ text }: { text: string }) {
+  const [output, setOutput] = useState<string[]>(() =>
+    text.split('').map(c => c === ' ' ? ' ' : SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)])
+  )
+
+  useEffect(() => {
+    const chars = text.split('')
+    const resolved = chars.map(c => c === ' ')
+    const resolveTimes = chars.map((c, i) =>
+      c === ' ' ? 0 : 300 + (i / chars.length) * 900 + Math.random() * 400
+    )
+    const start = performance.now()
+    let frame: number
+
+    const animate = (now: number) => {
+      const elapsed = now - start
+      let anyPending = false
+      setOutput(chars.map((c, i) => {
+        if (resolved[i]) return c
+        if (elapsed >= resolveTimes[i]) { resolved[i] = true; return c }
+        anyPending = true
+        return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)]
+      }))
+      if (anyPending) frame = requestAnimationFrame(animate)
+    }
+
+    frame = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(frame)
+  }, [text])
+
+  return <>{output.join('')}</>
+}
+
 type TimeLeft = ReturnType<typeof getTimeLeft>
 
 export default function App() {
@@ -120,7 +155,9 @@ id = setTimeout(tick, 1000 - (Date.now() % 1000))
 
       <div className="content">
         <div className="eyebrow">COUNTING DOWN TO</div>
-        <div className="takeover">STARKNET PRIVACY TAKEOVER</div>
+        <div className={`takeover${glitching ? ' glitch' : ''}`}>
+          <ScrambleText text="STARKNET PRIVACY TAKEOVER" />
+        </div>
 
         <div className={`countdown ${glitching ? 'glitch' : ''}`}>
           {units.map(({ key, label, value }, i) => (
