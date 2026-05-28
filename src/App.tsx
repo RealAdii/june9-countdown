@@ -25,7 +25,6 @@ function pad(n: number) {
   return String(n).padStart(2, '0')
 }
 
-// Keyed by position+digit — only changed digits remount and animate
 function AnimatedNumber({ value }: { value: number }) {
   return (
     <div className="number">
@@ -39,50 +38,87 @@ function AnimatedNumber({ value }: { value: number }) {
 type TimeLeft = ReturnType<typeof getTimeLeft>
 
 export default function App() {
-  const [time, setTime]         = useState<TimeLeft>(getTimeLeft)
-  const [progress, setProgress] = useState(getProgress)
-  const [muted, setMuted]       = useState(true)
+  const [time, setTime]             = useState<TimeLeft>(getTimeLeft)
+  const [progress, setProgress]     = useState(getProgress)
+  const [muted, setMuted]           = useState(true)
   const [videoReady, setVideoReady] = useState(false)
-  const [glitching, setGlitching] = useState(false)
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const [glitching, setGlitching]   = useState(false)
+  const videoRef   = useRef<HTMLVideoElement>(null)
+  const audioCtx   = useRef<AudioContext | null>(null)
+  const mutedRef   = useRef(true)
 
-  // Clock
+  // Keep mutedRef in sync so the interval closure always has the current value
+  useEffect(() => { mutedRef.current = muted }, [muted])
+
+  // Mechanical tick using shaped noise burst via Web Audio API
+  function playTick() {
+    if (mutedRef.current) return
+    const ctx = audioCtx.current
+    if (!ctx) return
+
+    const sampleRate = ctx.sampleRate
+    const duration   = 0.045
+    const buffer     = ctx.createBuffer(1, Math.floor(sampleRate * duration), sampleRate)
+    const data       = buffer.getChannelData(0)
+    for (let i = 0; i < data.length; i++) {
+      // White noise decaying exponentially — classic mechanical click
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.006))
+    }
+
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.value = 1800
+    filter.Q.value = 1.2
+
+    const gain = ctx.createGain()
+    gain.gain.value = 0.22
+
+    source.connect(filter)
+    filter.connect(gain)
+    gain.connect(ctx.destination)
+    source.start()
+  }
+
+  // Clock + tick
   useEffect(() => {
     const timer = setInterval(() => {
       setTime(getTimeLeft())
       setProgress(getProgress())
+      playTick()
     }, 1000)
     return () => clearInterval(timer)
   }, [])
 
-  // Unmute on first interaction
+  // Unmute video + init AudioContext on first interaction
   useEffect(() => {
-    const unmute = () => {
+    const activate = () => {
       const vid = videoRef.current
-      if (!vid) return
-      vid.muted = false
+      if (vid) { vid.muted = false }
+      if (!audioCtx.current) {
+        audioCtx.current = new AudioContext()
+      }
       setMuted(false)
     }
-    document.addEventListener('click',      unmute, { once: true })
-    document.addEventListener('touchstart', unmute, { once: true })
-    document.addEventListener('keydown',    unmute, { once: true })
+    document.addEventListener('click',      activate, { once: true })
+    document.addEventListener('touchstart', activate, { once: true })
+    document.addEventListener('keydown',    activate, { once: true })
     return () => {
-      document.removeEventListener('click',      unmute)
-      document.removeEventListener('touchstart', unmute)
-      document.removeEventListener('keydown',    unmute)
+      document.removeEventListener('click',      activate)
+      document.removeEventListener('touchstart', activate)
+      document.removeEventListener('keydown',    activate)
     }
   }, [])
 
-  // Occasional glitch — random interval between 8–18s
+  // Occasional glitch
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>
     const schedule = () => {
       timeout = setTimeout(() => {
         setGlitching(true)
-        setTimeout(() => {
-          setGlitching(false)
-          schedule()
-        }, 420)
+        setTimeout(() => { setGlitching(false); schedule() }, 420)
       }, 8000 + Math.random() * 10000)
     }
     schedule()
@@ -92,8 +128,13 @@ export default function App() {
   function toggleAudio() {
     const vid = videoRef.current
     if (!vid) return
+    const next = !vid.muted
     vid.muted = !vid.muted
-    setMuted(vid.muted)
+    // Resume AudioContext if it was suspended
+    if (!next && audioCtx.current?.state === 'suspended') {
+      audioCtx.current.resume()
+    }
+    setMuted(!next)
   }
 
   const units = [
@@ -116,7 +157,6 @@ export default function App() {
         onCanPlayThrough={() => setVideoReady(true)}
       />
 
-      {/* Film grain */}
       <div className="grain" />
 
       <div className="content">
@@ -129,9 +169,7 @@ export default function App() {
                 <div className="label">{label}</div>
                 <AnimatedNumber value={value} />
               </div>
-              {i < units.length - 1 && (
-                <div className="separator">:</div>
-              )}
+              {i < units.length - 1 && <div className="separator">:</div>}
             </div>
           ))}
         </div>
@@ -141,7 +179,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="progress-wrap">
         <div className="progress-labels">
           <span>MAY 27</span>
@@ -152,7 +189,6 @@ export default function App() {
         </div>
       </div>
 
-      {/* Audio toggle */}
       <button
         className="audio-btn"
         onClick={toggleAudio}
