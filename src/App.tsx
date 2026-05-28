@@ -43,15 +43,15 @@ export default function App() {
   const [muted, setMuted]           = useState(true)
   const [videoReady, setVideoReady] = useState(false)
   const [glitching, setGlitching]   = useState(false)
-  const videoRef   = useRef<HTMLVideoElement>(null)
-  const audioCtx   = useRef<AudioContext | null>(null)
-  const mutedRef   = useRef(true)
+  const videoRef        = useRef<HTMLVideoElement>(null)
+  const audioCtx        = useRef<AudioContext | null>(null)
+  const mutedRef        = useRef(true)
+  const heartbeatRef    = useRef<() => void>(() => {})
 
-  // Keep mutedRef in sync so the interval closure always has the current value
   useEffect(() => { mutedRef.current = muted }, [muted])
 
-  // Deep heartbeat — single thump (lub) + softer echo (dub), 150ms apart
-  function playHeartbeat() {
+  // Store latest heartbeat fn in a ref so the tick loop never has a stale closure
+  heartbeatRef.current = () => {
     if (mutedRef.current) return
     const ctx = audioCtx.current
     if (!ctx) return
@@ -63,7 +63,7 @@ export default function App() {
     comp.release.value   = 0.15
     comp.connect(ctx.destination)
 
-    const ac = ctx // local const preserves TypeScript narrowing through closures
+    const ac = ctx
 
     function thump(when: number, freq: number, gain: number, decay: number) {
       const osc = ac.createOscillator()
@@ -91,27 +91,24 @@ export default function App() {
     }
 
     const t = ctx.currentTime
-    thump(t,        55, 1.0, 0.35)  // LUB — deep, heavy
-    thump(t + 0.18, 70, 0.6, 0.25)  // dub — softer echo
+    thump(t,        55, 1.0, 0.35)
+    thump(t + 0.18, 70, 0.6, 0.25)
   }
 
-  // Countdown clock — synced to actual second boundary, not drifting interval
+  // Tick loop — snaps to exact second boundary, calls heartbeat via ref (always fresh)
   useEffect(() => {
-    let rafId: ReturnType<typeof setTimeout>
+    let id: ReturnType<typeof setTimeout>
 
     const tick = () => {
+      // Fire audio first — before React state update — so sound and digit land together
+      heartbeatRef.current()
       setTime(getTimeLeft())
       setProgress(getProgress())
-      playHeartbeat()
-      // Schedule next tick at the exact next second boundary
-      const msUntilNext = 1000 - (Date.now() % 1000)
-      rafId = setTimeout(tick, msUntilNext)
+      id = setTimeout(tick, 1000 - (Date.now() % 1000))
     }
 
-    // Fire immediately at next second boundary
-    const msUntilFirst = 1000 - (Date.now() % 1000)
-    rafId = setTimeout(tick, msUntilFirst)
-    return () => clearTimeout(rafId)
+    id = setTimeout(tick, 1000 - (Date.now() % 1000))
+    return () => clearTimeout(id)
   }, [])
 
   // Unmute video + init AudioContext on first interaction
