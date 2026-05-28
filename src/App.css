@@ -164,25 +164,25 @@ body {
 .date-line {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .date-line::before,
 .date-line::after {
   content: '';
   display: block;
-  width: 48px;
+  width: 72px;
   height: 1px;
-  background: var(--cream);
-  opacity: 0.15;
+  background: var(--orange);
+  opacity: 0.6;
 }
 
 .date-text {
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.24em;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
   color: var(--cream);
-  opacity: 0.35;
+  opacity: 0.9;
 }
 
 /* ─── Progress bar ───────────────────────────── */
