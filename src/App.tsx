@@ -39,7 +39,6 @@ type TimeLeft = ReturnType<typeof getTimeLeft>
 
 export default function App() {
   const [time, setTime]             = useState<TimeLeft>(getTimeLeft)
-  const [progress, setProgress]     = useState(getProgress)
   const [muted, setMuted]           = useState(true)
   const [videoReady, setVideoReady] = useState(false)
   const [glitching, setGlitching]   = useState(false)
@@ -51,8 +50,7 @@ export default function App() {
     let id: ReturnType<typeof setTimeout>
     const tick = () => {
       setTime(getTimeLeft())
-      setProgress(getProgress())
-      id = setTimeout(tick, 1000 - (Date.now() % 1000))
+id = setTimeout(tick, 1000 - (Date.now() % 1000))
     }
     id = setTimeout(tick, 1000 - (Date.now() % 1000))
     return () => clearTimeout(id)
