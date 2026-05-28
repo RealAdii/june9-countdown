@@ -30,6 +30,12 @@ body {
   object-fit: cover;
   z-index: 0;
   mix-blend-mode: luminosity;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.bg-video.ready {
+  opacity: 1;
 }
 
 /* ─── Film grain ─────────────────────────────── */

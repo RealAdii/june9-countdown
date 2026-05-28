@@ -42,6 +42,7 @@ export default function App() {
   const [time, setTime]         = useState<TimeLeft>(getTimeLeft)
   const [progress, setProgress] = useState(getProgress)
   const [muted, setMuted]       = useState(true)
+  const [videoReady, setVideoReady] = useState(false)
   const [glitching, setGlitching] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -106,12 +107,13 @@ export default function App() {
     <div className="root">
       <video
         ref={videoRef}
-        className="bg-video"
+        className={`bg-video${videoReady ? ' ready' : ''}`}
         src="/bg.mp4"
         autoPlay
         muted
         loop
         playsInline
+        onCanPlayThrough={() => setVideoReady(true)}
       />
 
       {/* Film grain */}
