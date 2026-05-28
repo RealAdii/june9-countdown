@@ -199,6 +199,7 @@ export default function App() {
         muted
         loop
         playsInline
+        preload="auto"
         onCanPlayThrough={() => setVideoReady(true)}
       />
 
