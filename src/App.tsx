@@ -63,9 +63,11 @@ export default function App() {
     comp.release.value   = 0.15
     comp.connect(ctx.destination)
 
+    const ac = ctx // local const preserves TypeScript narrowing through closures
+
     function thump(when: number, freq: number, gain: number, decay: number) {
-      const osc = ctx.createOscillator()
-      const env = ctx.createGain()
+      const osc = ac.createOscillator()
+      const env = ac.createGain()
       osc.type = 'sine'
       osc.frequency.setValueAtTime(freq, when)
       osc.frequency.exponentialRampToValueAtTime(freq * 0.5, when + decay)
@@ -76,9 +78,8 @@ export default function App() {
       osc.start(when)
       osc.stop(when + decay)
 
-      // Sub layer for physical weight
-      const sub = ctx.createOscillator()
-      const subEnv = ctx.createGain()
+      const sub    = ac.createOscillator()
+      const subEnv = ac.createGain()
       sub.type = 'sine'
       sub.frequency.value = freq * 0.5
       subEnv.gain.setValueAtTime(gain * 0.7, when)
