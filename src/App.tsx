@@ -120,6 +120,7 @@ id = setTimeout(tick, 1000 - (Date.now() % 1000))
 
       <div className="content">
         <div className="eyebrow">COUNTING DOWN TO</div>
+        <div className="takeover">STARKNET PRIVACY TAKEOVER</div>
 
         <div className={`countdown ${glitching ? 'glitch' : ''}`}>
           {units.map(({ key, label, value }, i) => (

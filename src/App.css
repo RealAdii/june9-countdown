@@ -82,6 +82,16 @@ body {
   text-transform: uppercase;
 }
 
+.takeover {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--cream);
+  text-transform: uppercase;
+  text-shadow: 0 0 60px rgba(242, 94, 19, 0.4), 0 4px 40px rgba(0,0,0,0.6);
+  margin-top: -8px;
+}
+
 /* ─── Countdown ──────────────────────────────── */
 .countdown {
   display: flex;
