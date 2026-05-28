@@ -91,7 +91,12 @@ id = setTimeout(tick, 1000 - (Date.now() % 1000))
       const vid  = videoRef.current
       const tick = tickRef.current
       if (vid)  vid.muted = false
-      if (tick) { tick.currentTime = 0; tick.play() }
+      if (tick) {
+        tick.muted = false
+        tick.volume = 0.7
+        tick.currentTime = 0
+        tick.play().catch(() => {})
+      }
       setMuted(false)
     }
     document.addEventListener('click',      activate, { once: true })

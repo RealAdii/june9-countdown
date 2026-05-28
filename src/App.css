@@ -207,13 +207,7 @@ body {
 
 .date-line::before,
 .date-line::after {
-  content: '';
-  display: block;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--orange);
-  opacity: 0.6;
+  content: none;
 }
 
 .date-text {
