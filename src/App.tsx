@@ -87,7 +87,10 @@ export default function App() {
   useEffect(() => {
     const activate = () => {
       const vid = videoRef.current
-      if (vid) { vid.muted = false }
+      if (vid) {
+        vid.currentTime = 0
+        vid.muted = false
+      }
       if (!audioCtx.current) {
         audioCtx.current = new AudioContext()
       }
