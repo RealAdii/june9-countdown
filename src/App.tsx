@@ -15,11 +15,6 @@ function getTimeLeft() {
   }
 }
 
-function getProgress() {
-  const total   = TARGET.getTime() - START.getTime()
-  const elapsed = Date.now() - START.getTime()
-  return Math.min(Math.max((elapsed / total) * 100, 0), 100)
-}
 
 function pad(n: number) {
   return String(n).padStart(2, '0')
