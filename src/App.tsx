@@ -145,15 +145,6 @@ export default function App() {
         </div>
       </div>
 
-      <div className="progress-wrap">
-        <div className="progress-labels">
-          <span />
-          <span>JUN 9</span>
-        </div>
-        <div className="progress-track">
-          <div className="progress-fill" style={{ width: `${progress}%` }} />
-        </div>
-      </div>
 
       <button
         className="audio-btn"
