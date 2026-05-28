@@ -43,85 +43,28 @@ export default function App() {
   const [muted, setMuted]           = useState(true)
   const [videoReady, setVideoReady] = useState(false)
   const [glitching, setGlitching]   = useState(false)
-  const videoRef        = useRef<HTMLVideoElement>(null)
-  const audioCtx        = useRef<AudioContext | null>(null)
-  const mutedRef        = useRef(true)
-  const heartbeatRef    = useRef<() => void>(() => {})
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const tickRef  = useRef<HTMLAudioElement>(null)
 
-  useEffect(() => { mutedRef.current = muted }, [muted])
-
-  // Store latest heartbeat fn in a ref so the tick loop never has a stale closure
-  heartbeatRef.current = () => {
-    if (mutedRef.current) return
-    const ctx = audioCtx.current
-    if (!ctx) return
-
-    const comp = ctx.createDynamicsCompressor()
-    comp.threshold.value = -2
-    comp.ratio.value     = 10
-    comp.attack.value    = 0.001
-    comp.release.value   = 0.15
-    comp.connect(ctx.destination)
-
-    const ac = ctx
-
-    function thump(when: number, freq: number, gain: number, decay: number) {
-      const osc = ac.createOscillator()
-      const env = ac.createGain()
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(freq, when)
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.5, when + decay)
-      env.gain.setValueAtTime(gain, when)
-      env.gain.exponentialRampToValueAtTime(0.001, when + decay)
-      osc.connect(env)
-      env.connect(comp)
-      osc.start(when)
-      osc.stop(when + decay)
-
-      const sub    = ac.createOscillator()
-      const subEnv = ac.createGain()
-      sub.type = 'sine'
-      sub.frequency.value = freq * 0.5
-      subEnv.gain.setValueAtTime(gain * 0.7, when)
-      subEnv.gain.exponentialRampToValueAtTime(0.001, when + decay * 0.7)
-      sub.connect(subEnv)
-      subEnv.connect(comp)
-      sub.start(when)
-      sub.stop(when + decay * 0.7)
-    }
-
-    const t = ctx.currentTime
-    thump(t,        55, 1.0, 0.35)
-    thump(t + 0.18, 70, 0.6, 0.25)
-  }
-
-  // Tick loop — snaps to exact second boundary, calls heartbeat via ref (always fresh)
+  // Countdown clock
   useEffect(() => {
     let id: ReturnType<typeof setTimeout>
-
     const tick = () => {
-      // Fire audio first — before React state update — so sound and digit land together
-      heartbeatRef.current()
       setTime(getTimeLeft())
       setProgress(getProgress())
       id = setTimeout(tick, 1000 - (Date.now() % 1000))
     }
-
     id = setTimeout(tick, 1000 - (Date.now() % 1000))
     return () => clearTimeout(id)
   }, [])
 
-  // Unmute video + init AudioContext on first interaction
+  // Activate both audio sources on first interaction
   useEffect(() => {
     const activate = () => {
-      const vid = videoRef.current
-      if (vid) {
-        vid.currentTime = 0
-        vid.muted = false
-      }
-      if (!audioCtx.current) {
-        audioCtx.current = new AudioContext()
-      }
+      const vid  = videoRef.current
+      const tick = tickRef.current
+      if (vid)  { vid.currentTime = 0; vid.muted = false }
+      if (tick) { tick.currentTime = 0; tick.play() }
       setMuted(false)
     }
     document.addEventListener('click',      activate, { once: true })
@@ -148,15 +91,12 @@ export default function App() {
   }, [])
 
   function toggleAudio() {
-    const vid = videoRef.current
-    if (!vid) return
-    const next = !vid.muted
-    vid.muted = !vid.muted
-    // Resume AudioContext if it was suspended
-    if (!next && audioCtx.current?.state === 'suspended') {
-      audioCtx.current.resume()
-    }
-    setMuted(!next)
+    const vid  = videoRef.current
+    const tick = tickRef.current
+    const next = !muted
+    if (vid)  vid.muted  = next
+    if (tick) tick.muted = next
+    setMuted(next)
   }
 
   const units = [
@@ -179,6 +119,9 @@ export default function App() {
         preload="auto"
         onCanPlayThrough={() => setVideoReady(true)}
       />
+
+      {/* Tick audio — looping MP3, muted until user interaction */}
+      <audio ref={tickRef} src="/tick.mp3" loop muted preload="auto" />
 
       <div className="grain" />
 
