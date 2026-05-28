@@ -90,8 +90,8 @@ body {
 }
 
 .separator {
-  font-size: 108px;
-  font-weight: 100;
+  font-size: 130px;
+  font-weight: 700;
   color: var(--cream);
   line-height: 1;
   margin-top: 0;
@@ -120,14 +120,14 @@ body {
 
 .digit {
   display: inline-block;
-  font-size: 108px;
-  font-weight: 200;
+  font-size: 130px;
+  font-weight: 700;
   color: var(--cream);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
-  width: 0.65em;
+  width: 0.62em;
   text-align: center;
-  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 4px 48px rgba(0, 0, 0, 0.5);
   animation: digitSlideIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -252,8 +252,8 @@ body {
 /* ─── Responsive ─────────────────────────────── */
 @media (max-width: 640px) {
   .countdown { gap: 4px; }
-  .digit { font-size: 56px; }
-  .separator { font-size: 56px; }
+  .digit { font-size: 64px; }
+  .separator { font-size: 64px; }
   .progress-wrap { left: 20px; right: 20px; bottom: 20px; }
   .audio-btn { right: 20px; bottom: 16px; }
 }
