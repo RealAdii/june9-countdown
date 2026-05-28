@@ -126,8 +126,8 @@ id = setTimeout(tick, 1000 - (Date.now() % 1000))
           {units.map(({ key, label, value }, i) => (
             <div key={key} style={{ display: 'contents' }}>
               <div className="unit">
-                <div className="label">{label}</div>
                 <AnimatedNumber value={value} />
+                <div className="label">{label}</div>
               </div>
               {i < units.length - 1 && <div className="separator">:</div>}
             </div>
