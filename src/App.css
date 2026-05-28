@@ -166,7 +166,6 @@ body {
   width: 0.62em;
   text-align: center;
   text-shadow: 0 4px 48px rgba(0, 0, 0, 0.5);
-  animation: digitSlideIn 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .label {
