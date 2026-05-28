@@ -154,7 +154,6 @@ id = setTimeout(tick, 1000 - (Date.now() % 1000))
       <div className="grain" />
 
       <div className="content">
-        <div className="eyebrow">COUNTING DOWN TO</div>
         <div className={`takeover${glitching ? ' glitch' : ''}`}>
           <ScrambleText text="STARKNET PRIVACY TAKEOVER" />
         </div>
