@@ -50,36 +50,47 @@ export default function App() {
   // Keep mutedRef in sync so the interval closure always has the current value
   useEffect(() => { mutedRef.current = muted }, [muted])
 
-  // Mechanical tick using shaped noise burst via Web Audio API
+  // Sharp clock tick: two-layer synthesis
   function playTick() {
     if (mutedRef.current) return
     const ctx = audioCtx.current
     if (!ctx) return
 
-    const sampleRate = ctx.sampleRate
-    const duration   = 0.045
-    const buffer     = ctx.createBuffer(1, Math.floor(sampleRate * duration), sampleRate)
-    const data       = buffer.getChannelData(0)
-    for (let i = 0; i < data.length; i++) {
-      // White noise decaying exponentially — classic mechanical click
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sampleRate * 0.006))
-    }
+    const t = ctx.currentTime
 
+    // Layer 1: high-freq oscillator burst — the sharp "click" transient
+    const osc     = ctx.createOscillator()
+    const oscGain = ctx.createGain()
+    osc.frequency.value = 3200
+    oscGain.gain.setValueAtTime(0.45, t)
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.01)
+    osc.connect(oscGain)
+    oscGain.connect(ctx.destination)
+    osc.start(t)
+    osc.stop(t + 0.01)
+
+    // Layer 2: bandpass-filtered noise — the mechanical "body"
+    const sr     = ctx.sampleRate
+    const buffer = ctx.createBuffer(1, Math.floor(sr * 0.02), sr)
+    const data   = buffer.getChannelData(0)
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sr * 0.0025))
+    }
     const source = ctx.createBufferSource()
     source.buffer = buffer
 
     const filter = ctx.createBiquadFilter()
     filter.type = 'bandpass'
-    filter.frequency.value = 1800
-    filter.Q.value = 1.2
+    filter.frequency.value = 2800
+    filter.Q.value = 3.5
 
-    const gain = ctx.createGain()
-    gain.gain.value = 0.22
+    const noiseGain = ctx.createGain()
+    noiseGain.gain.value = 0.35
 
     source.connect(filter)
-    filter.connect(gain)
-    gain.connect(ctx.destination)
-    source.start()
+    filter.connect(noiseGain)
+    noiseGain.connect(ctx.destination)
+    source.start(t)
   }
 
   // Clock + tick
