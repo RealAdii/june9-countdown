@@ -90,7 +90,7 @@ body {
 }
 
 .separator {
-  font-size: 130px;
+  font-size: 180px;
   font-weight: 700;
   color: var(--cream);
   line-height: 1;
@@ -120,7 +120,7 @@ body {
 
 .digit {
   display: inline-block;
-  font-size: 130px;
+  font-size: 180px;
   font-weight: 700;
   color: var(--cream);
   letter-spacing: -0.04em;
